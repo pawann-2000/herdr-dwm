@@ -1,0 +1,44 @@
+{
+  "global": {
+    "cmd-k k": "mod.open:cheatsheet",
+    "cmd-k cmd-k": "mod.open:cheatsheet",
+    "cmd-k b": {
+      "command": "tab.new",
+      "args": {
+        "mod": "browser",
+        "name": "web"
+      }
+    },
+    "cmd-k p": "sessions.port",
+    "cmd-k g": "mod.open:solitaire"
+  },
+  "layout:dwm": {
+    "alt-p": "mod.open:dwm",
+    "alt-shift-enter": "dwm.spawn",
+    "alt-b": "dwm.togglebar",
+    "alt-j": "dwm.focusnext",
+    "alt-k": "dwm.focusprev",
+    "alt-enter": "dwm.zoom",
+    "alt-tab": "dwm.lastview",
+    "alt-shift-c": "pane.close",
+    "alt-t": "dwm.tile",
+    "alt-m": "dwm.monocle",
+    "alt-space": "pane.zoom",
+    "alt-,": "space.prev",
+    "alt-.": "space.next",
+    "alt-shift-q": "window.close",
+    "alt-1": "tab.select:1",
+    "alt-2": "tab.select:2",
+    "alt-3": "tab.select:3",
+    "alt-4": "tab.select:4",
+    "alt-5": "tab.select:5",
+    "alt-6": "tab.select:6",
+    "alt-7": "tab.select:7",
+    "alt-8": "tab.select:8",
+    "alt-9": "tab.select:9",
+    "alt-e": "neotree.toggle",
+    "alt-h": "pane.go:left",
+    "alt-l": "pane.go:right",
+    "alt-s": "sessions.toggle"
+  }
+}

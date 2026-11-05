@@ -1,0 +1,4 @@
+.cache/
+*.d.ts
+jsconfig.json
+.DS_Store
