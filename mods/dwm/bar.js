@@ -1,6 +1,15 @@
 import { div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, panes, theme, run, nextCommand, window, layout, settings } from "herdr";
+import { spaces, panes, theme, run, nextCommand, window, layout, settings, shared, setShared } from "herdr";
+import { samples, inks } from "./backdrop.js";
+
+// See-through fills: the alpha picked in the glass window, shared("glass").panels
+// (0.85 until then, as in mods/glass/tint.js). Text, borders and selections stay solid.
+const glass = (c, floor = 0) => { const v = shared("glass")?.panels, a = Math.max(floor, typeof v === "number" ? v : 0.85);
+  return a >= 1 || !/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : c + Math.round(a * 255).toString(16).padStart(2, "0"); };
+// Exported for dmenu.
+export // Text colours the bar made readable over the glass background (mods/dwm/backdrop.js).
+const ink = () => { const i = shared("glass.ink"); return i?.layout === shared("layout") ? i.colors ?? {} : {}; };
 
 export const BH = 18;
 export const PAD = 8;
@@ -16,10 +25,11 @@ export function lightsPad() {
   return (tl[0] + LIGHTS_W) / (Number(settings().zoom) || 1);
 }
 
+// `ink` is the solid fill, for the text of an inverted (urgent) tag.
 export function schemes(t) {
   return {
-    norm: { fg: t.foreground, bg: t.chrome },
-    sel: { fg: t.accent_foreground, bg: t.accent },
+    norm: { fg: t.foreground, bg: glass(t.chrome), ink: t.chrome },
+    sel: { fg: t.accent_foreground, bg: glass(t.accent, 0.6), ink: t.accent },
   };
 }
 
@@ -49,6 +59,11 @@ export default class Bar {
       this.now = new Date();
       cx.notify();
     };
+    // Readable text over the glass background: see backdrop.js.
+    this.backKey = undefined;
+    this.backSamples = null;
+    this.inkKey = null;
+    cx.timer.every(300, (cx) => this.backdrop(cx));
     cx.timer.after(60000 - (Date.now() % 60000) + 50, (cx) => {
       tick(cx);
       cx.timer.every(60000, tick);
@@ -59,6 +74,28 @@ export default class Bar {
         cx.notify();
       }
     });
+  }
+
+  // Samples the layout's background when it changes, and shares text colours that read
+  // well on it whenever the background, the panels' alpha or the theme change.
+  backdrop(cx) {
+    const bg = layout()?.background ?? null, key = JSON.stringify(bg);
+    if (key !== this.backKey) {
+      this.backKey = key;
+      this.backSamples = null;
+      cx.spawn(async () => {
+        const s = await samples(bg).catch(() => []);
+        if (this.backKey === key) this.backSamples = s;
+      });
+      return;
+    }
+    if (!this.backSamples) return;
+    const t = theme(), lay = shared("layout"), v = shared("glass")?.panels, a = typeof v === "number" ? v : 0.85;
+    const inputs = JSON.stringify([lay, a, t, this.backSamples]);
+    if (inputs === this.inkKey) return;
+    this.inkKey = inputs;
+    const next = { layout: lay, colors: inks(t, this.backSamples, a) };
+    if (JSON.stringify(shared("glass.ink")) !== JSON.stringify(next)) setShared("glass.ink", next);
   }
 
   command(c) {
@@ -96,7 +133,7 @@ export default class Bar {
   }
 
   render() {
-    const t = theme();
+    const t = { ...theme(), ...ink() };
     const { norm, sel } = schemes(t);
     const { s, tab, ps } = shown();
     const focused = ps.find((p) => p.focused);
@@ -111,7 +148,7 @@ export default class Bar {
     const tags = (s?.tabs ?? []).map((x) => {
       const sc = x.active ? sel : norm;
       const urg = x.status === "blocked" || x.status === "done";
-      const fg = urg ? sc.bg : sc.fg;
+      const fg = urg ? sc.ink : sc.fg;
       const box = div().absolute().left(1).top(1).size(4);
       return cell(`tag-${x.id}`, urg ? { fg, bg: sc.fg } : sc, x.name)
         .relative()

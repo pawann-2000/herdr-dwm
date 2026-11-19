@@ -1,10 +1,12 @@
 # herdr-dwm
 
-A dwm-style layout for the [Herdr](https://herdr.dev) desktop app. A black-and-blue dwm bar runs across the top, with tags, the layout symbol, the focused title and a clock. Terminals tile master and stack below it. A neo-tree file tree sits on the left and a sessions-and-agents sidebar on the right. Around them are file previews, a reader-view browser, a port opener, a keyboard cheatsheet, and a pixel-art solitaire in a floating window.
+A dwm-style layout for the [Herdr](https://herdr.dev) desktop app. A black-and-blue dwm bar runs across the top, with tags, the layout symbol, the focused title and a clock. Terminals tile master and stack below it. A neo-tree file tree sits on the left and a sessions-and-agents sidebar on the right. Around them are file previews, a reader-view browser, a port opener, a keyboard cheatsheet, and a pixel-art solitaire in a floating window. The whole layout is see-through over a background of your choosing: a gradient or your own picture, with sliders for how opaque the panels and terminals are.
 
 ![The dwm layout](preview.png)
 
 ![Solitaire](solitaire.png)
+
+![The glass window](glass.png)
 
 ## For agents: installing it
 
@@ -14,7 +16,8 @@ These steps follow the "Layouts and mods other people made" section of `~/.confi
 2. **Check for name clashes.** This repo adds:
    - `layouts/dwm.json` and `layouts/dwm.svg`
    - `themes/dwm.json`
-   - seven mods: `mods/dwm`, `mods/neotree`, `mods/sessions`, `mods/preview`, `mods/browser`, `mods/cheatsheet` and `mods/solitaire`
+   - eight mods: `mods/dwm`, `mods/neotree`, `mods/sessions`, `mods/preview`, `mods/browser`, `mods/cheatsheet`, `mods/solitaire` and `mods/glass`
+   - the glass mod creates `backgrounds/` in the Herdr home for the pictures people add
 
    Never overwrite one the person has. If a name is taken, rename the new one everywhere it's referenced (see [Names that refer to each other](#names-that-refer-to-each-other)).
 3. **Copy each mod folder in one move.** If Herdr sees a mod's `main.js` before its `mod.json`, it docks the mod into the layout on screen and edits that layout file. So copy each folder into a temporary folder on the same disk first, then `mv` it into `mods/`:
@@ -22,7 +25,7 @@ These steps follow the "Layouts and mods other people made" section of `~/.confi
    ```sh
    HOME_DIR=${HERDR_APP_HOME:-~/.config/herdr-app}
    STAGE=$(mktemp -d "$HOME_DIR/.stage-XXXX")
-   for m in dwm neotree sessions preview browser cheatsheet solitaire; do
+   for m in dwm neotree sessions preview browser cheatsheet solitaire glass; do
      cp -R "mods/$m" "$STAGE/$m" && mv "$STAGE/$m" "$HOME_DIR/mods/$m"
    done
    rmdir "$STAGE"
@@ -30,9 +33,10 @@ These steps follow the "Layouts and mods other people made" section of `~/.confi
    cp themes/dwm.json "$HOME_DIR/themes/"
    ```
 4. **Merge `keys.json`.** Add its `global` chords and its `layout:dwm` section into the person's own `keys.json`, and ask before replacing a key they already use.
-   - **macOS:** the `alt-` keys need Option to act as Alt. That's the default (`option_as_alt: "auto"`) on US, ABC and similar keyboard layouts; on others, set `option_as_alt` in `settings.json`.
-   - **Linux and Windows:** `cmd` is the Super key, so you may want to rebind the `cmd-k` chords to a free chord such as `ctrl-alt-k`.
-5. **Check each mod:** run `herdr-app check "$HOME_DIR/mods/<name>"` for all seven, and fix anything that fails before going on.
+   - **No Option keys:** every key uses `cmd` (with `shift` or `ctrl`), so Option stays free for a window manager such as AeroSpace or yabai. In this layout they replace Herdr's own `cmd-p` (picker), `cmd-b` (sidebar), `cmd-[` (previous agent) and `cmd-shift-enter` (zoom); the palette (`cmd-shift-p`) still reaches those.
+   - **Keep `cmd-k` free:** the `⌘K` chords only start if nothing binds `cmd-k` on its own, and a `layout:dwm` key beats a `global` one.
+   - **Linux and Windows:** `cmd` is the Super key, which the desktop often takes, so you may want to move these keys to `ctrl-shift-` ones.
+5. **Check each mod:** run `herdr-app check "$HOME_DIR/mods/<name>"` for all eight, and fix anything that fails before going on.
 6. **Switch to the layout:** `herdr-app do layout.switch --name dwm`. The person's own layout stays as it was, and `ctrl-shift-l` switches back.
 
 To remove it, delete the files listed in step 2 and the merged keys.
@@ -41,7 +45,7 @@ To remove it, delete the files listed in step 2 and the merged keys.
 
 | Part | Mod | What it does |
 |---|---|---|
-| Bar and launcher | `dwm` | The top bar: one tag per tab, the layout symbol (`[]=` tiled or `[n]` monocle), the focused pane's title, and the space name with a clock. `alt-p` opens dmenu, which runs any program on `$PATH` in a new pane. New panes tile the dwm way: master on the left, the stack on the right. |
+| Bar and launcher | `dwm` | The top bar: one tag per tab, the layout symbol (`[]=` tiled or `[n]` monocle), the focused pane's title, and the space name with a clock. `cmd-p` opens dmenu, which runs any program on `$PATH` in a new pane. New panes tile the dwm way: master on the left, the stack on the right. |
 | File tree | `neotree` | The left sidebar, in the style of neo-tree. It shows the shown tab's folder with indent markers, Nerd Font file icons and git status. Files open in the tab's vim or nvim if one is running, otherwise in a new editor pane. Images, PDFs, video and documents open in a preview instead. It works on remote machines too. |
 | Sessions and agents | `sessions` | The right sidebar. Spaces are grouped by machine, with their tabs under them. Agents are sorted by urgency, with their sub-agents nested. Background terminals that no space shows are listed too, along with the ports servers are listening on in each tab. From here you can create, rename, close, reorder, peek, pin and kill. |
 | Preview | `preview` | Shows a file: images with zoom, PDFs as scrolling pages, markdown and HTML rendered, code in a read-only editor, and anything else as a thumbnail. It opens either in a pane or in a floating window that follows the tree's cursor. |
@@ -49,6 +53,7 @@ To remove it, delete the files listed in step 2 and the merged keys.
 | Port opener | `sessions` | Notices when a program in a terminal starts listening on a port and posts a notification that opens the page. Ports on another machine are forwarded to this one over ssh. |
 | Cheatsheet | `cheatsheet` | Every key in one dialog: Herdr's own, this layout's, and the ones inside the sidebars and the browser. You can type to filter. |
 | Solitaire | `solitaire` | Klondike in a floating window: pixel-art cards on felt, with an old X11-style button bar. Drag the corner grip to resize it. The game is saved as you play. |
+| Transparency | `glass` | A floating window with two sliders, for how opaque the panels (bar, sidebars, preview, browser) and the terminals are, and a gallery of backgrounds: the theme's colour, six gradients, and your own pictures. Drop pictures on the window, or press **add**, to copy them into `backgrounds/`. **solid** turns transparency off. Text in the panels changes colour with the background, so it stays readable. |
 
 ### Keys
 
@@ -56,17 +61,17 @@ With the dwm layout shown (`layout:dwm`):
 
 | Key | Does |
 |---|---|
-| `alt-p` | dmenu: run a program |
-| `alt-shift-enter` | New terminal, placed as master or stack |
-| `alt-j` / `alt-k` | Focus the next / previous pane |
-| `alt-enter` | Swap the focused pane with the master |
-| `alt-t` / `alt-m` / `alt-space` | Tile / monocle / zoom |
-| `alt-1` … `alt-9`, `alt-tab` | Go to a tab, or back to the last one |
-| `alt-,` / `alt-.` | Previous / next space |
-| `alt-b` | Toggle the bar |
-| `alt-shift-c` / `alt-shift-q` | Close the pane / close the window |
-| `alt-e` / `alt-s` | Open, focus or close the file tree / the sessions sidebar |
-| `alt-h` / `alt-l` | Move focus into a sidebar and back out |
+| `⌘P` | dmenu: run a program |
+| `⌘⇧Enter` | New terminal, placed as master or stack |
+| `⌘J` / `⌘⇧J` | Focus the next / previous pane |
+| `⌘Enter` | Swap the focused pane with the master |
+| `⌘⇧T` / `⌘⇧M` / `⌘⇧Space` | Tile / monocle / zoom |
+| `⌘1` … `⌘9`, `⌘[` | Go to a tab, or back to the last one |
+| `⌘⇧,` / `⌘⇧.` | Previous / next space |
+| `⌘B` | Toggle the bar |
+| `⌘⇧C` | Close the pane |
+| `⌘E` / `⌘S` | Open, focus or close the file tree / the sessions sidebar |
+| `⌃⌘←` / `⌃⌘→` (and `↑` `↓`) | Move focus into a sidebar and back out, or between panes |
 
 Everywhere (`global`):
 
@@ -76,8 +81,9 @@ Everywhere (`global`):
 | `⌘K B` | Browser in a new tab |
 | `⌘K P` | Open the current tab's port in the browser |
 | `⌘K G` | Solitaire |
+| `⌘K T` | Transparency and background |
 
-Inside the file tree, the sessions sidebar and the browser, `?` lists their own keys, and the cheatsheet lists them all.
+Inside the file tree, the sessions sidebar and the browser, `?` lists their own keys, and the cheatsheet lists them all. In the glass window: `-` / `=` for the panels, `[` / `]` for the terminals, `←` / `→` for the background, `f` cover or contain, `a` add, `o` open the folder, `0` solid.
 
 ## What runs outside Herdr
 
@@ -102,12 +108,19 @@ Tell the person this before installing:
   - for a port on another machine, starts `ssh -N -L` in a background core terminal labelled `herdr.port-forward`, using the target from `hc machine ls`, and kills it when the port closes
   - runs `hostname`
 - **Bar:** dmenu lists the programs on `$PATH` and runs the one picked.
+- **Glass:**
+  - the bar samples the background to keep text readable: it shrinks the picture to 6 × 6 with `sips` (or ImageMagick) into a temporary file and reads it with `od`
+  - rewrites the shown layout's file (`layouts/<name>.json`) when the terminal slider or the background changes: the root's `background` and `terminal_opacity`, and the tab block's pane `background`. Herdr writes the file back as plain JSON, so its hand formatting goes.
+  - copies pictures into `backgrounds/` with `cp`, converting heic, heif and avif to jpg with `sips` (macOS) or ImageMagick
+  - makes small thumbnails in `backgrounds/.thumbs/` with `sips` or ImageMagick
+  - **add** opens the system's file picker: `osascript` on macOS, `zenity` or `kdialog` on Linux
+  - **open folder** uses `open` or `xdg-open`
 
 ## Requirements
 
 - **Herdr:** the Herdr app 0.1.13 or later, on macOS or Linux. Built and tested on 0.1.13 on macOS.
 - **Programs used:** `curl`, `git`, `ssh`, `lsof` or `ss`, and `file`.
-- **Optional extras:** `pdftoppm` or Xcode's `swiftc` for PDF pages, and a trash command for deleting from the tree.
+- **Optional extras:** `pdftoppm` or Xcode's `swiftc` for PDF pages, a trash command for deleting from the tree, and ImageMagick on Linux for background thumbnails and heic pictures.
 - **Icons:** the Nerd Font icons come from the Symbols Nerd Font that ships with Herdr.
 
 ## Names that refer to each other
@@ -125,7 +138,8 @@ If you rename a mod, change these references too:
 - **Asset paths:**
   - `preview` and `browser` cache under `mods/<name>/.cache`
   - `solitaire` draws from `mods/solitaire/px/`
-- **Cheatsheet:** it reads the keys the other mods publish as the shared values `cheatsheet.neotree`, `cheatsheet.sessions` and `cheatsheet.browser`.
+- **Cheatsheet:** it reads the keys the other mods publish as the shared values `cheatsheet.neotree`, `cheatsheet.sessions`, `cheatsheet.browser` and `cheatsheet.glass`.
+- **Glass:** the panel opacity is the shared value `glass` (`{ panels }`), and the readable text colours the bar works out are `glass.ink` (`{ layout, colors }`). Herdr doesn't let one mod import another's files, so `dwm`, `neotree`, `sessions`, `preview` and `browser` each carry the same short `glass()` and `ink()` helpers that read them (`glass()` is the one in `mods/glass/tint.js`).
 - **Other shared values:** `neotree.preview`, `ports`, `solitaire.game`, `solitaire.draw` and `solitaire.scale`.
 
 ## Limits
@@ -135,6 +149,7 @@ If you rename a mod, change these references too:
 - **PDFs:** the preview shows the first 40 pages.
 - **Previews from another machine:** files over 64 MB aren't copied.
 - **Solitaire:** it scales between 1 and 4 screen pixels per art pixel, in half steps. `px/make.py` redraws its art from the bitmaps inside it.
+- **Transparency:** Herdr 0.1.13 can't make the window itself see-through to the desktop, so the layout shows through to its own background instead. Dialogs and floating windows (the cheatsheet, the floating preview, solitaire, glass) keep Herdr's solid frame.
 
 ## License
 

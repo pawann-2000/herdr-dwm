@@ -9,6 +9,13 @@ import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState, TextView } from "gpui-base";
 import { exec, readTextFile, theme, settings, props, shared, setShared, closeOverlay, appHome } from "herdr";
 
+// See-through fills: the alpha picked in the glass window, shared("glass").panels
+// (0.85 until then, as in mods/glass/tint.js). Text, borders and selections stay solid.
+const glass = (c, floor = 0) => { const v = shared("glass")?.panels, a = Math.max(floor, typeof v === "number" ? v : 0.85);
+  return a >= 1 || !/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : c + Math.round(a * 255).toString(16).padStart(2, "0"); };
+// Text colours the bar made readable over the glass background (mods/dwm/backdrop.js).
+const ink = () => { const i = shared("glass.ink"); return i?.layout === shared("layout") ? i.colors ?? {} : {}; };
+
 const IMAGE = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tif", "tiff", "svg"]);
 const MARKDOWN = new Set(["md", "markdown", "mdx"]);
 const HTML = new Set(["html", "htm"]);
@@ -107,7 +114,7 @@ export default class Preview extends View {
           if (!text.includes("\0")) {
             if (MARKDOWN.has(ext)) return show({ type: "markdown", text, id });
             if (HTML.has(ext)) return show({ type: "html", text, id });
-            const t = theme();
+            const t = { ...theme(), ...ink() };
             this.code = EditorState.new({ language: LANG[ext] ?? (ext || "txt"), readonly: true, value: text,
               font_family: settings().font_family, font_size: 12,
               syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6 } });
@@ -148,12 +155,12 @@ export default class Preview extends View {
   }
 
   render(cx) {
-    const t = theme(), spec = this.spec(), follow = Boolean(props()?.follow);
+    const t = { ...theme(), ...ink() }, spec = this.spec(), follow = Boolean(props()?.follow);
     const key = spec?.file ? JSON.stringify([spec.on ?? null, spec.file]) : null;
     if (key !== this.key) this.load(spec, key, cx);
     const v = this.view, m = this.meta;
 
-    const header = h_flex().h(24).flex_none().px(8).gap(8).items_center().border_b(1).border_color(t.border).bg(t.chrome)
+    const header = h_flex().h(24).flex_none().px(8).gap(8).items_center().border_b(1).border_color(t.border).bg(glass(t.chrome))
       .child(div().flex_none().max_w(320).truncate().font_bold().child(spec?.file?.split("/").pop() ?? "Preview"))
       .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim).child(m ? `${human(m.size)} · ${v?.type === "pdf" ? `${v.pages.length}${v.pages.length === PAGES_MAX ? "+" : ""} pages · ` : ""}${m.kind}` : spec?.on ?? ""))
       .when(v?.type === "image" || v?.type === "pdf", (el) => el.child(h_flex().flex_none().gap(2).text_color(t.muted)
@@ -185,7 +192,7 @@ export default class Preview extends View {
             ? Editor.new(this.code).flex_1().min_h(0)
             : div().flex_1().p(12).text_color(t.dim).child(v.text);
 
-    return v_flex().id("root").on_size_change((size, cx) => { this.size = size; cx.notify(); }).size_full().overflow_hidden().bg(t.background).text_color(t.foreground).text_size(13)
+    return v_flex().id("root").on_size_change((size, cx) => { this.size = size; cx.notify(); }).size_full().overflow_hidden().bg(glass(t.background)).text_color(t.foreground).text_size(13)
       .child(header).child(body);
   }
 }

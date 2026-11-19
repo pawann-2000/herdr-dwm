@@ -5,8 +5,15 @@
 
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState, TextView, InputState, Input } from "gpui-base";
-import { exec, theme, settings, props, appHome, home, panes, run, notify, nextCommand, setShared } from "herdr";
+import { exec, theme, settings, props, appHome, home, panes, run, notify, nextCommand, shared, setShared } from "herdr";
 import { URL } from "url";
+
+// See-through fills: the alpha picked in the glass window, shared("glass").panels
+// (0.85 until then, as in mods/glass/tint.js). Text, borders and selections stay solid.
+const glass = (c, floor = 0) => { const v = shared("glass")?.panels, a = Math.max(floor, typeof v === "number" ? v : 0.85);
+  return a >= 1 || !/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : c + Math.round(a * 255).toString(16).padStart(2, "0"); };
+// Text colours the bar made readable over the glass background (mods/dwm/backdrop.js).
+const ink = () => { const i = shared("glass.ink"); return i?.layout === shared("layout") ? i.colors ?? {} : {}; };
 
 const CACHE = "mods/browser/.cache";
 const SEARCH = "https://lite.duckduckgo.com/lite/?q=";
@@ -206,7 +213,7 @@ export default class Browser extends View {
       return { url, status, title: title || name, kind: "html", html };
     }
     if (/markdown/.test(type) || /\.(md|markdown)$/i.test(new URL(url).pathname)) return { url, status, title: name, kind: "markdown", text: body };
-    const t = theme();
+    const t = { ...theme(), ...ink() };
     const code = EditorState.new({ language: LANG[type] ?? "txt", readonly: true, value: body.length > 400000 ? `${body.slice(0, 400000)}\n… (cut off)` : body,
       font_family: settings().font_family, font_size: 12,
       syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6 } });
@@ -286,16 +293,16 @@ export default class Browser extends View {
   }
 
   render(_cx) {
-    const t = theme(), p = this.page;
+    const t = { ...theme(), ...ink() }, p = this.page;
     const button = (id, label, on, act) => div().id(id).flex_none().w(20).flex().justify_center()
-      .text_color(on ? t.foreground : t.dim).when(on, (el) => el.cursor_pointer().hover((s) => s.text_color(t.accent_foreground)))
+      .text_color(on ? t.muted : t.dim).when(on, (el) => el.cursor_pointer().hover((s) => s.text_color(t.foreground)))
       .on_click((_e, cx) => { if (on) { act(cx); cx.notify(); } }).child(label);
 
-    const field = Input.new(this.input).flex_1().min_w(0).h(22).px(8).bg(t.background)
+    const field = Input.new(this.input).flex_1().min_w(0).h(22).px(8).bg(glass(t.background))
       .border_1().border_color(this.editing ? t.accent : t.border)
       .text_size(FONT).text_color(this.editing ? t.foreground : t.muted);
 
-    const bar = h_flex().h(30).flex_none().px(6).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+    const bar = h_flex().h(30).flex_none().px(6).gap(4).items_center().bg(glass(t.chrome)).border_b(1).border_color(t.border)
       .child(button("browser-back", "‹", this.past.length > 0, (cx) => this.back(cx)))
       .child(button("browser-forward", "›", this.ahead.length > 0, (cx) => this.forward(cx)))
       .child(button("browser-reload", "↻", Boolean(p), (cx) => this.load(p.url, cx)))
@@ -329,7 +336,7 @@ export default class Browser extends View {
 
     // Clicking the page takes the keyboard for the shortcuts; clicking the address field keeps it there.
     return v_flex().id("root").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
-      .size_full().overflow_hidden().bg(t.background).text_color(t.foreground).text_size(FONT)
+      .size_full().overflow_hidden().bg(glass(t.background)).text_color(t.foreground).text_size(FONT)
       .child(bar)
       .child(v_flex().id("browser-body").flex_1().min_h(0).on_mouse_down("left", () => { if (this.page) this.handle.focus(); }).child(body))
       .child(foot);

@@ -6,7 +6,8 @@
   "theme": "dwm",
   "ui_font": "JetBrains Mono",
   "terminal_padding": [2, 2],
-  "background": "background",
+  "background": { "gradient": ["#005577", "#000000"], "angle": 160 },
+  "terminal_opacity": 0.85,
   "resizable": false,
   "preview": "layouts/dwm.svg",
   "children": [
@@ -36,7 +37,7 @@
             "pane": {
               "gap": 0,
               "radius": 0,
-              "background": "background",
+              "background": "#00000000",
               "border": { "width": 1, "color": "border" },
               "focus": { "width": 1, "color": "accent" },
               "lone": true

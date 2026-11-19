@@ -8,6 +8,13 @@ import { v_flex, h_flex, v_virtual_list, Scrollbar, VirtualListScrollHandle } fr
 import { spaces, panes, focused, exec, hc, run, notify, watchFolder, theme, props, nextCommand, shared, setShared, openOverlay, closeOverlay } from "herdr";
 import { ICON_FONT, GLYPH, GIT, DIR_COLOR, fileIcon } from "./icons.js";
 
+// See-through fills: the alpha picked in the glass window, shared("glass").panels
+// (0.85 until then, as in mods/glass/tint.js). Text, borders and selections stay solid.
+const glass = (c, floor = 0) => { const v = shared("glass")?.panels, a = Math.max(floor, typeof v === "number" ? v : 0.85);
+  return a >= 1 || !/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : c + Math.round(a * 255).toString(16).padStart(2, "0"); };
+// Text colours the bar made readable over the glass background (mods/dwm/backdrop.js).
+const ink = () => { const i = shared("glass.ink"); return i?.layout === shared("layout") ? i.colors ?? {} : {}; };
+
 const ROW = 20, IND = 16, PAD = 6, FONT = 13, WIDTH = 240;
 // neo-tree's filtered_items defaults; H shows them, dimmed.
 const HIDE_DOTFILES = true, HIDE_GITIGNORED = true;
@@ -144,7 +151,7 @@ export default class NeoTree extends View {
     this.restore = Number(store("width")) > 40 ? Number(store("width")) : WIDTH;
     this.prompt = null; this.filter = null; this.files = null; this.help = false; this.pending = null;
     this.tick = 0; this.dirty = false; this.again = false;
-    setShared("cheatsheet.neotree", { title: "File tree", hint: "alt-e, then these", keys: HELP });
+    setShared("cheatsheet.neotree", { title: "File tree", hint: "cmd-e, then these", keys: HELP });
     cx.spawn(async (cx) => {
       for (;;) {
         this.command(await nextCommand());
@@ -283,7 +290,7 @@ export default class NeoTree extends View {
   row(r, t, focus) {
     const sel = r.path === this.cursor, git = r.git && GIT[r.git];
     const icon = r.dir ? { glyph: !r.open ? GLYPH.folder : r.empty ? GLYPH.folderEmpty : GLYPH.folderOpen, color: DIR_COLOR } : fileIcon(r.name);
-    const fg = sel && focus ? t.accent_foreground : git ? git.color : r.dim ? t.dim : r.link ? t.ansi6 : r.dir ? DIR_COLOR : t.foreground;
+    const fg = sel && focus ? t.foreground : git ? git.color : r.dim ? t.dim : r.link ? t.ansi6 : r.dir ? DIR_COLOR : t.foreground;
     return h_flex().h(ROW).w_full().px(PAD).items_center()
       .when(sel, (el) => el.bg(focus ? t.selected : t.raised))
       .children(this.guides(r, t))
@@ -295,7 +302,7 @@ export default class NeoTree extends View {
   render(cx) {
     const w = this.where();
     if (w?.key !== this.ctx?.key) this.switchTo(w, cx);
-    const t = theme(), focus = this.handle.is_focused(), rows = this.rows(), branch = this.target()?.branch;
+    const t = { ...theme(), ...ink() }, focus = this.handle.is_focused(), rows = this.rows(), branch = this.target()?.branch;
     let at = rows.findIndex((r) => r.path === this.cursor);
     if (at < 0 && rows.length) { at = Math.min(this.at, rows.length - 1); this.cursor = rows[at].path; }
     this.at = Math.max(at, 0);
@@ -311,7 +318,7 @@ export default class NeoTree extends View {
     const body = this.help
       ? v_flex().id("neotree-help").flex_1().min_h(0).p(PAD).gap(2).overflow_y_scrollbar()
         .child(div().pb(4).font_bold().child("neo-tree keys"))
-        .children(HELP.map(([k, what]) => h_flex().gap(8).child(div().flex_none().w(64).text_color(t.accent_foreground).child(k)).child(div().text_color(t.muted).child(what))))
+        .children(HELP.map(([k, what]) => h_flex().gap(8).child(div().flex_none().w(64).text_color(t.foreground).child(k)).child(div().text_color(t.muted).child(what))))
       : rows.length
         ? v_flex().relative().flex_1().min_h(0)
           .child(v_virtual_list("neotree-rows", rows.length, ROW, (i) => rows[i].path,
@@ -322,7 +329,7 @@ export default class NeoTree extends View {
 
     const p = this.prompt;
     const footer = p
-      ? v_flex().flex_none().px(PAD).border_t(1).border_color(t.border).bg(t.chrome)
+      ? v_flex().flex_none().px(PAD).border_t(1).border_color(t.border).bg(glass(t.chrome))
         .child(div().h(ROW).flex().items_center().min_w(0).truncate().text_color(t.muted).child(p.label))
         .when(p.kind !== "confirm", (el) => el.child(h_flex().h(ROW).items_center().min_w(0)
           .child(div().min_w(0).truncate().child(p.text)).child(div().flex_none().w(2).h(ROW - 6).bg(t.foreground))))
@@ -339,7 +346,7 @@ export default class NeoTree extends View {
         if (size.width > 40) this.restore = size.width;
         cx.notify();
       })
-      .size_full().overflow_hidden().bg(t.background).text_color(t.foreground).text_size(FONT)
+      .size_full().overflow_hidden().bg(glass(t.background)).text_color(t.foreground).text_size(FONT)
       .child(header).child(body).when(Boolean(footer), (el) => el.child(footer));
   }
 

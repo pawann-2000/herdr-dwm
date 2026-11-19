@@ -7,7 +7,7 @@ import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { keys, shared, theme, props, closeOverlay, window } from "herdr";
 
-const MODS = ["neotree", "sessions", "browser"];
+const MODS = ["neotree", "sessions", "browser", "glass"];
 const COL = 360, FONT = 13;
 
 const LABELS = {
@@ -19,7 +19,7 @@ const LABELS = {
   "agent.next": "Next agent", "agent.prev": "Previous agent",
   "layout.switch": "Switch layout", "layout.toggle:sidebar": "Toggle sidebar",
   "pane.close": "Close pane", "pane.zoom": "Zoom pane (monocle)",
-  "mod.open:picker": "Space picker", "mod.open:dwm": "dmenu: run a program", "mod.open:cheatsheet": "This cheatsheet", "mod.open:solitaire": "Solitaire (floating)",
+  "mod.open:picker": "Space picker", "mod.open:dwm": "dmenu: run a program", "mod.open:cheatsheet": "This cheatsheet", "mod.open:solitaire": "Solitaire (floating)", "mod.open:glass": "Transparency and background",
   "terminal.search": "Find in terminal", "terminal.copy": "Copy", "terminal.paste": "Paste", "terminal.paste_image": "Paste image",
   "window.close": "Close window", "window.minimize": "Minimize window", "window.maximize": "Maximize window",
   "dwm.spawn": "New terminal (master / stack)", "dwm.togglebar": "Toggle the bar", "dwm.focusnext": "Focus next pane",
@@ -140,7 +140,7 @@ export default class Cheatsheet extends View {
         .child(div().font_bold().text_color(t.foreground).child(g.title))
         .child(div().flex_1().min_w(0).truncate().text_size(FONT - 2).text_color(t.dim).child(g.hint)))
       .children(g.rows.map((r) => h_flex().gap(10).min_h(19).items_center()
-        .child(div().flex_none().w(132).truncate().text_color(t.accent_foreground).child(r.keys))
+        .child(div().flex_none().w(132).truncate().text_color(t.foreground).child(r.keys))
         .child(div().flex_1().min_w(0).truncate().text_color(t.muted).child(r.what))));
 
     return v_flex().id("root").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))

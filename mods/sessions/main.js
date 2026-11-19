@@ -7,6 +7,13 @@ import { v_flex, h_flex, v_virtual_list, Scrollbar, VirtualListScrollHandle } fr
 import { spaces, machines, panes, agents, terminals, exec, hc, knownAgents, run, notify, theme, props, shared, setShared, setAgentOrder, nextCommand } from "herdr";
 import { listening, rootPid, forward, tunnels, EPHEMERAL, LABEL } from "./ports.js";
 
+// See-through fills: the alpha picked in the glass window, shared("glass").panels
+// (0.85 until then, as in mods/glass/tint.js). Text, borders and selections stay solid.
+const glass = (c, floor = 0) => { const v = shared("glass")?.panels, a = Math.max(floor, typeof v === "number" ? v : 0.85);
+  return a >= 1 || !/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : c + Math.round(a * 255).toString(16).padStart(2, "0"); };
+// Text colours the bar made readable over the glass background (mods/dwm/backdrop.js).
+const ink = () => { const i = shared("glass.ink"); return i?.layout === shared("layout") ? i.colors ?? {} : {}; };
+
 const ROW = 20, HEAD = 28, IND = 16, PAD = 6, FONT = 13, WIDTH = 260;
 const ICON_FONT = "Symbols Nerd Font";
 const G = { web: "\u{F059F}", open: "", closed: "", local: "", remote: "\u{F048B}", branch: "", term: "", pin: "\u{F0403}", blocked: "", done: "", idle: "" };
@@ -68,7 +75,7 @@ export default class Sessions extends View {
     this.cursor = null; this.at = 0; this.width = WIDTH; this.height = 0;
     this.restore = Number(store("width")) > 40 ? Number(store("width")) : WIDTH;
     this.prompt = null; this.help = false; this.pending = null; this.host = null;
-    setShared("cheatsheet.sessions", { title: "Sessions sidebar", hint: "alt-s, then these", keys: HELP });
+    setShared("cheatsheet.sessions", { title: "Sessions sidebar", hint: "cmd-s, then these", keys: HELP });
     cx.spawn(async (cx) => {
       const r = await exec("hostname", ["-s"]).catch(() => null);
       this.host = r?.code === 0 ? r.stdout.trim() : null;
@@ -203,7 +210,7 @@ export default class Sessions extends View {
     const sel = r.key === this.cursor, hot = sel && focus;
     const el = h_flex().h(r.kind === "head" ? HEAD : ROW).w_full().px(PAD).items_center()
       .when(sel, (el) => el.bg(focus ? t.selected : t.raised));
-    const name = (text, color, bold) => div().flex_1().min_w(0).pl(4).truncate().text_color(hot ? t.accent_foreground : color).when(bold, (el) => el.font_bold()).child(text);
+    const name = (text, color, bold) => div().flex_1().min_w(0).pl(4).truncate().text_color(hot ? t.foreground : color).when(bold, (el) => el.font_bold()).child(text);
     const dim = (text) => div().flex_none().pl(6).text_size(FONT - 2).text_color(t.dim).child(text);
     switch (r.kind) {
       case "machine": {
@@ -247,7 +254,7 @@ export default class Sessions extends View {
         const detail = tab?.named ? tab.name : a.program?.name;
         return el.child(this.status(a.status, t)).child(this.picture(a.program, t))
           .child(h_flex().flex_1().min_w(0).pl(4).gap(5)
-            .child(div().flex_none().max_w(120).truncate().text_color(hot ? t.accent_foreground : a.status === "idle" && !a.focused ? t.muted : t.foreground)
+            .child(div().flex_none().max_w(120).truncate().text_color(hot ? t.foreground : a.status === "idle" && !a.focused ? t.muted : t.foreground)
               .when(a.focused, (el) => el.font_bold()).child(a.space_name || a.title || a.address))
             .when(Boolean(detail), (el) => el.child(div().flex_1().min_w(0).truncate().text_size(FONT - 2).text_color(t.dim).child(detail))))
           .when(a.pinned, (el) => el.child(this.glyph(G.pin, t.dim, FONT - 3)))
@@ -268,7 +275,7 @@ export default class Sessions extends View {
   }
 
   render(_cx) {
-    const t = theme(), focus = this.handle.is_focused(), rows = this.rows(), now = Date.now();
+    const t = { ...theme(), ...ink() }, focus = this.handle.is_focused(), rows = this.rows(), now = Date.now();
     setAgentOrder(this.order);
     if (!focus && !this.prompt) this.cursor = this.current(rows) ?? this.cursor;
     let at = rows.findIndex((r) => r.key === this.cursor);
@@ -276,14 +283,14 @@ export default class Sessions extends View {
     this.at = Math.max(at, 0);
 
     const header = h_flex().h(ROW + 4).flex_none().px(PAD).gap(6).items_center().border_b(1).border_color(t.border)
-      .child(div().flex_none().font_family(ICON_FONT).text_color(t.accent_foreground).child(G.term))
+      .child(div().flex_none().font_family(ICON_FONT).text_color(t.foreground).child(G.term))
       .child(div().flex_1().min_w(0).truncate().font_bold().child("Sessions"))
       .child(div().flex_none().text_color(t.dim).child(focus ? "? help" : ""));
 
     const body = this.help
       ? v_flex().id("sessions-help").flex_1().min_h(0).p(PAD).gap(2).overflow_y_scrollbar()
         .child(div().pb(4).font_bold().child("sessions keys"))
-        .children(HELP.map(([k, what]) => h_flex().gap(8).child(div().flex_none().w(64).text_color(t.accent_foreground).child(k)).child(div().text_color(t.muted).child(what))))
+        .children(HELP.map(([k, what]) => h_flex().gap(8).child(div().flex_none().w(64).text_color(t.foreground).child(k)).child(div().text_color(t.muted).child(what))))
       : v_flex().relative().flex_1().min_h(0)
         .child(v_virtual_list("sessions-rows", rows.length, rows.map((r) => (r.kind === "head" ? HEAD : ROW)), (i) => rows[i].key,
           (range) => rows.slice(range.start, range.end).map((r) => this.row(r, t, focus, now)))
@@ -291,7 +298,7 @@ export default class Sessions extends View {
         .child(Scrollbar.vertical("sessions-rows").absolute().inset_0());
 
     const p = this.prompt;
-    const footer = !p ? null : v_flex().flex_none().px(PAD).border_t(1).border_color(t.border).bg(t.chrome)
+    const footer = !p ? null : v_flex().flex_none().px(PAD).border_t(1).border_color(t.border).bg(glass(t.chrome))
       .child(div().h(ROW).flex().items_center().min_w(0).truncate().text_color(t.muted).child(p.label))
       .when(p.kind === "input", (el) => el.child(h_flex().h(ROW).items_center().min_w(0)
         .child(div().min_w(0).truncate().child(p.text)).child(div().flex_none().w(2).h(ROW - 6).bg(t.foreground))))
@@ -299,7 +306,7 @@ export default class Sessions extends View {
         .when(i === p.sel, (el) => el.bg(t.selected))
         .child(div().flex_none().w(14).text_color(t.dim).child(i < 9 ? String(i + 1) : ""))
         .child(this.picture(it.program, t))
-        .child(div().flex_1().min_w(0).truncate().text_color(i === p.sel ? t.accent_foreground : t.foreground).child(it.label)))
+        .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(it.label)))
         : [div().h(ROW).text_color(t.dim).child(p.loading ? "Looking for agents…" : "No agents installed there")]));
 
     return v_flex().id("root").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
@@ -309,7 +316,7 @@ export default class Sessions extends View {
         if (size.width > 40) this.restore = size.width;
         cx.notify();
       })
-      .size_full().overflow_hidden().bg(t.background).text_color(t.foreground).text_size(FONT)
+      .size_full().overflow_hidden().bg(glass(t.background)).text_color(t.foreground).text_size(FONT)
       .child(header).child(body).when(Boolean(footer), (el) => el.child(footer));
   }
 

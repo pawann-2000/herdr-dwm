@@ -1,7 +1,7 @@
 import { div } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, theme, exec, notify, props, closeOverlay } from "herdr";
-import { BH, PAD, FONT, schemes, spawn, lightsPad } from "./bar.js";
+import { BH, PAD, FONT, schemes, spawn, lightsPad, ink } from "./bar.js";
 
 // dmenu_path: every executable on $PATH, by name.
 const PATH = 'IFS=:; for d in $PATH; do for f in "$d"/*; do [ -f "$f" ] && [ -x "$f" ] && echo "${f##*/}"; done; done | sort -u';
@@ -98,7 +98,7 @@ export default class Dmenu {
   }
 
   render() {
-    const { norm, sel } = schemes(theme());
+    const { norm, sel } = schemes({ ...theme(), ...ink() });
     const end = this.next(this.curr);
     const lp = lightsPad();
     const cell = (text, sc) => div().flex_none().h_full().px(PAD).flex().items_center().bg(sc.bg).text_color(sc.fg).child(text);

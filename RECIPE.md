@@ -1,6 +1,6 @@
 # dwm
 
-A dwm desktop inside Herdr. An 18px black bar runs across the top, with numbered tags in dwm blue. Below it, terminals tile master and stack with 1px borders. A neo-tree file tree is on the left and a sessions-and-agents sidebar on the right. Files preview in a pane or a floating window, a reader-view browser opens in a tab, a notification offers each new port, and `⌘K` chords open a cheatsheet and a pixel-art solitaire.
+A dwm desktop inside Herdr. An 18px black bar runs across the top, with numbered tags in dwm blue. Below it, terminals tile master and stack with 1px borders. A neo-tree file tree is on the left and a sessions-and-agents sidebar on the right. Files preview in a pane or a floating window, a reader-view browser opens in a tab, a notification offers each new port, and `⌘K` chords open a cheatsheet and a pixel-art solitaire. Everything is slightly see-through over a background (a dwm-blue gradient by default), and a glass window sets how much and what's behind.
 
 ![dwm](preview.png)
 
@@ -9,6 +9,7 @@ A dwm desktop inside Herdr. An 18px black bar runs across the top, with numbered
 The look throughout:
 
 - **Theme:** `themes/dwm.json`. Background `#000000`, chrome `#222222`, foreground `#bbbbbb`, border `#444444`, accent and selection `#005577`, accent foreground `#eeeeee`.
+- **Glass:** the root's background is a gradient from `#005577` to `#000000` at 160°. Terminals have `terminal_opacity` 0.85 over a `#00000000` pane background, and the panels' fills are 85% opaque.
 - **Font:** JetBrains Mono for the UI. The title bar is hidden (`titlebar: "none"`, macOS traffic lights at 6, 2).
 
 Top to bottom, left to right:
@@ -35,8 +36,8 @@ Top to bottom, left to right:
 
 - **Agent status:** working is a spinning ring (the shipped `mods/workspace-chrome/spinner.svg`); blocked is a `t.blocked` exclamation mark; done is a `t.done` check; idle is a `t.idle` ring. The agents header counts blocked agents ("2 need you"). Agents are ordered for `agent.next` with `setAgentOrder`.
 - **Sidebars:**
-  - **Opening and closing:** `alt-e` / `alt-s` open a closed sidebar and focus it. Pressed in the focused sidebar, the same key closes it by resizing its block to 0 px (`layout.resize`), not hiding it. Hidden blocks don't get mod commands, a resized one does.
-  - **Focus:** `alt-h` / `alt-l` are `pane.go`, and both mods are `focusable`.
+  - **Opening and closing:** `cmd-e` / `cmd-s` open a closed sidebar and focus it. Pressed in the focused sidebar, the same key closes it by resizing its block to 0 px (`layout.resize`), not hiding it. Hidden blocks don't get mod commands, a resized one does.
+  - **Focus:** `ctrl-cmd-left` / `ctrl-cmd-right` are `pane.go`, and both mods are `focusable`.
   - **Following the terminal:** the tree's root is the folder of the terminal last focused in the shown tab, and follows `cd`.
   - **Keys inside:** both take neo-tree-style keys, listed by `?` in each.
 - **Opening files from the tree:** `enter` on a file:
@@ -66,6 +67,18 @@ Top to bottom, left to right:
   - **Look:** a 1px `#005577` border, a `#d9d9d9` Athena-style button row and status bar, and felt `#16912a` with grain.
   - **The art:** cards are a 36 × 50 pixel-art grid with notched corners. It has pixel ranks and suits (the lower index and lower pips flipped), pip layouts for 2 to 10, and a large ace. Court cards are mirrored King, Queen and Jack portraits with robes in the suit colour. The back is red-cored diamonds on blue.
 
+- **Glass** (`mod.open:glass`, `⌘K T`, a window keyed `glass`):
+  - **Panels slider:** sets `shared("glass").panels` live. Each mod paints its fills (theme `background` and `chrome`, and the bar's tags with a floor of 0.6) as `#rrggbbaa`, while text, borders and selections stay solid.
+  - **Terminals slider:** when released, writes `terminal_opacity` on the shown layout's root. Below 1, the tab block's pane `background` becomes `#00000000`; at 1 it goes back to `background`.
+  - **Background tiles:** the theme's colour, six gradients (dwm, night, dusk, moss, ember, steel, drawn in the tiles as 14 bands), the pictures in `backgrounds/` (shown from 256px thumbnails), and **add**. A picture is `{ image: "backgrounds/<name>", fit }`, with cover or contain.
+  - **Adding pictures:** drop files on the window (`on_drop`) or use the system picker. The picker runs in the background, because `exec` stops after 30 s, and the mod polls for its answer. The folder is watched, so pictures copied in by hand show up too.
+  - Changes go into `layouts/<name>.json` with `readTextFile` and `writeTextFile`, one at a time.
+  - **Readable text** (`mods/dwm/backdrop.js`, run by the bar every 300 ms):
+    - **Sampling:** when the layout's background changes, it samples it: a gradient's stops and three points between them, or a picture shrunk to 6 × 6 with `sips -s format bmp` and read with `od` (ImageMagick's `txt:` on Linux).
+    - **Blending:** it blends each sample under the theme's `background` at the panel alpha.
+    - **Adjusting:** it moves each text colour toward white or black until its worst contrast ratio reaches 7 (`foreground`), 4.5 (`muted`), 3 (`dim`) or 3 (status and `ansi` colours).
+    - **Sharing:** the result is `shared("glass.ink")`, and each mod draws with `{ ...theme(), ...ink() }`. A theme background, or solid panels, leave the theme's colours as they are.
+
 ## Built from
 
 - **Layout:** `layouts/dwm.json`. Its root column holds:
@@ -79,10 +92,11 @@ Top to bottom, left to right:
   - `browser`
   - `cheatsheet`
   - `solitaire` (`px/make.py` writes the SVGs in `px/`)
+  - `glass` (`tint.js` holds the `glass()` helper the other mods copy)
 - **Shipped mods used:** `mods/workspace-chrome/spinner.svg` and program icons from `icons/`.
 - **Herdr functions:**
   - data: `spaces`, `machines`, `panes`, `agents`, `terminals`, `focused`, `theme`, `settings`, `keys`
-  - running things: `exec` (with `on`), `hc`, `run`, `readTextFile`, `watchFolder`, `knownAgents`
+  - running things: `exec` (with `on`), `hc`, `run`, `readTextFile`, `writeTextFile`, `layout`, `watchFolder`, `knownAgents`
   - shared state and overlays: `shared`, `setShared`, `setAgentOrder`, `notify`, `openOverlay`, `closeOverlay`, `nextCommand`, `props`, `appHome`
 - **Commands:**
   - spaces: `space.new`, `space.select`, `space.rename`, `space.close`, `space.move`
@@ -90,7 +104,7 @@ Top to bottom, left to right:
   - panes: `pane.split`, `pane.focus`, `pane.go`, `pane.zoom`, `pane.close`
   - terminals: `terminal.peek`, `terminal.keep`, `terminal.kill`, `terminal.pin`
   - layout: `layout.resize`, `layout.switch`
-- **Programs:** `sh`, `git`, `curl`, `ssh`, `ss` or `lsof`, `ps`, `file`, `ls`, `trash`, `gio` or `trash-put`, `qlmanage`, `pdftoppm`, `ffmpeg`, `swiftc`, and `pbcopy`, `wl-copy` or `xclip`.
+- **Programs:** `sh`, `git`, `curl`, `ssh`, `ss` or `lsof`, `ps`, `file`, `ls`, `cp`, `cmp`, `trash`, `gio` or `trash-put`, `qlmanage`, `pdftoppm`, `ffmpeg`, `swiftc`, `sips` or ImageMagick, `osascript`, `zenity` or `kdialog`, and `pbcopy`, `wl-copy` or `xclip`.
 
 ## Watch out
 
@@ -102,17 +116,27 @@ Top to bottom, left to right:
 - **Floating windows** only get mouse moves while the pointer is over them. The solitaire grip adds a clear 400px margin while it's held, so resizing keeps working past the edge.
 - **`shell` scripts in `exec`:** end them with a command that succeeds, or a final `[ ... ] && break` makes the script exit 1.
 - **The browser** is reader-only: there's no JavaScript or CSS. Pages that draw themselves with JavaScript show a notice offering `O`.
+- **Keys:**
+  - No key uses Option: tiling window managers such as AeroSpace take `alt-` keys before Herdr sees them. The layout uses `cmd`, `cmd-shift` and `ctrl-cmd`.
+  - A `layout:dwm` key beats a `global` one, so binding `cmd-k` alone in the layout stops every `⌘K` chord. Focus previous is `cmd-shift-j` for that reason.
+- **Transparency:**
+  - `terminal_opacity` only shows what's behind the pane frame, and an unset pane `background` is drawn solid in the theme's colour. Set the pane background to `#00000000` to let the root's background through.
+  - Don't change the look with `layout.set`: it replaces the layout and clears its saved state in `layouts/.state/` (the theme picked in Settings, sidebar sizes). Writing the file keeps that state.
+  - A key may appear only once per object. A second `"background"` in the pane makes Herdr reject the whole file, with "did not match any variant of untagged enum Content".
+- **`accent_foreground` is for text on the accent colour.** In dwm's own theme it's near white, but in graphite it's near black. Text on `selected` rows and on panels uses `foreground`, as Herdr's spaces mod does.
+- **Mods can't import from another mod's folder** (`resolves outside the application directory`), so shared helpers are copied into each mod.
 - **Remote ports** need `ssh <machine target>` to work without a password, because the tunnel runs with `BatchMode=yes`.
 
 ## Done when
 
-- **Layout:** `herdr-app check` passes for all seven mods, and `layout.switch dwm` shows the bar, the tree on the left, the terminals and sessions on the right.
+- **Layout:** `herdr-app check` passes for all eight mods, and `layout.switch dwm` shows the bar, the tree on the left, the terminals and sessions on the right.
 - **Sidebars:**
-  - `alt-e` / `alt-s` open, focus and close each sidebar, and reloading a mod doesn't collapse it.
+  - `cmd-e` / `cmd-s` open, focus and close each sidebar, and reloading a mod doesn't collapse it.
   - the tree follows a `cd`, shows git status, and opens a file in a running nvim with `enter`
 - **Previews:**
   - `enter` on a png and a pdf opens a preview pane: the pdf scrolls through its pages and `+` zooms the image
   - `P` opens the floating preview, which changes as the cursor moves
 - **Ports and browser:** starting `python3 -m http.server 8765` in a terminal posts "localhost:8765 is up" within 5 seconds, with a port row under the tab, and the browser shows the directory listing.
 - **Cheatsheet:** `⌘K K` lists every section and filters as you type.
+- **Glass:** `⌘K T` opens it. The panels slider changes the sidebars and the bar as it moves, the terminals slider changes the terminals when released, a gradient tile shows behind the whole layout, and a picture dropped on the window is copied into `backgrounds/` and shown. Over a busy picture, the sessions help (`?`) and the tree stay readable in graphite and in dwm's theme. The theme picked in Settings and the sidebar sizes stay as they were.
 - **Solitaire:** `⌘K G` opens it, a dragged card stays under the pointer at the spot it was grabbed (also at zoom 1.1), and the corner grip resizes it.
